@@ -1230,7 +1230,6 @@ MEI_STATIC IFX_void_t MEI_Recv_AUTO_MODEM_READY( MEI_DEV_T *pMeiDev,
                              "MODEM RDY", MEI_DRV_PRN_LEVEL_NORMAL);
 
 #if MEI_SUPPORT_DEVICE_VR11 == 1
-      MEI_VR11_BarSafeLocationAddressUpdate(pMeiDev);
       MEI_CGU_PPLOMCFG_print(&(pMeiDev->meiDrvCntrl));
 #endif /* MEI_SUPPORT_DEVICE_VR11 */
    }

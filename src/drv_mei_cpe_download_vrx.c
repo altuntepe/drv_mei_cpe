@@ -1951,19 +1951,6 @@ static IFX_int32_t MEI_VRX_FMLT2_BarRegistersUpdate(
       (MEI_DRV_PCIE_PHY_MEMBASE_GET(&pMeiDev->meiDrvCntrl) +
       MEI_CHIPID_EFUSE_OFFSET)));
 
-   barIdx = MEI_FW_IMAGE_FREQ_SCAL_PPE_CHUNK_INDEX;
-
-   MEI_REG_ACCESS_ME_XMEM_BAR_SET(pMeiDrvCntrl, barIdx,
-      (MEI_DRV_PCIE_PHY_MEMBASE_GET(&pMeiDev->meiDrvCntrl) +
-      MEI_CGU_OFFSET + MEI_PLL_OMCFG_OFFSET));
-   MEI_BAR_TYPE_SET(pMeiDev, barIdx, eMEI_BAR_TYPE_SPECIAL);
-   PRN_DBG_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_NORMAL,
-      ("BAR[%02d] = 0x%08x (-> CGU / PLL_OMCFG)" MEI_DRV_CRLF, barIdx,
-      (MEI_DRV_PCIE_PHY_MEMBASE_GET(&pMeiDev->meiDrvCntrl) +
-      MEI_CGU_OFFSET + MEI_PLL_OMCFG_OFFSET)));
-
-   pMeiDev->barSafeAddr = pChunk[last_used_chunkIdx].pBARx;
-
 #endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 
    /* Check for the valid DATA chunk*/
@@ -3902,36 +3889,4 @@ IFX_int32_t MEI_VR11_ErbBarSet(
 
 #endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 #endif /* (MEI_SUPPORT_DSM == 1) */
-
-#if(MEI_SUPPORT_DEVICE_VR11 == 1)
-IFX_int32_t MEI_VR11_BarSafeLocationAddressUpdate(
-                                 MEI_DEV_T *pMeiDev)
-{
-   IFX_int32_t ret = 0;
-   IFX_uint32_t barIdx;
-   MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl;
-
-   pMeiDrvCntrl = &(pMeiDev->meiDrvCntrl);
-
-   /* BAR18 */
-   barIdx = MEI_FW_IMAGE_CHIPID_EFUSE_CHUNK_INDEX;
-
-   MEI_REG_ACCESS_ME_XMEM_BAR_SET(pMeiDrvCntrl, barIdx, (unsigned int)pMeiDev->barSafeAddr);
-   MEI_BAR_TYPE_SET(pMeiDev, barIdx, eMEI_BAR_TYPE_SPECIAL);
-   PRN_DBG_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_NORMAL,
-      ("BAR[%02d] = 0x%08X (-> CHIPID_EFUSE + GPIO_FUNC)"MEI_DRV_CRLF, barIdx,
-      MEI_REG_ACCESS_ME_XMEM_BAR_GET(pMeiDrvCntrl, barIdx)));
-
-   /* BAR19 */
-   barIdx = MEI_FW_IMAGE_FREQ_SCAL_PPE_CHUNK_INDEX;
-
-   MEI_REG_ACCESS_ME_XMEM_BAR_SET(pMeiDrvCntrl, barIdx,  (unsigned int)pMeiDev->barSafeAddr);
-   MEI_BAR_TYPE_SET(pMeiDev, barIdx, eMEI_BAR_TYPE_SPECIAL);
-   PRN_DBG_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_NORMAL,
-      ("BAR[%02d] = 0x%08X (-> CGU / PLL_OMCFG)"MEI_DRV_CRLF, barIdx,
-      MEI_REG_ACCESS_ME_XMEM_BAR_GET(pMeiDrvCntrl, barIdx)));
-
-   return ret;
-}
-#endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 

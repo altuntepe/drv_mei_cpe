@@ -156,6 +156,18 @@ IFX_int32_t MEI_InternalRequestConfig(
    return retVal;
 }
 
+IFX_void_t MEI_InternalGetDevLayout(
+            IFX_uint32_t *pMaxDeviceNumber,
+            IFX_uint32_t *pLinesPerDevice,
+            IFX_uint32_t *pChannelPerLine)
+{
+   *pMaxDeviceNumber = MEI_DFEX_ENTITIES;
+   *pLinesPerDevice = MEI_DFE_INSTANCE_PER_ENTITY;
+   *pChannelPerLine = MEI_DEVICE_CFG_VALUE_GET(ChannelsPerLine);
+
+   return;
+}
+
 #if (MEI_SUPPORT_VDSL2_ADSL_SWAP == 1)
 IFX_int32_t MEI_InternalDevCfgFwModeSwap(
                               MEI_DYN_CNTRL_T    *pMeiDynCntrl,

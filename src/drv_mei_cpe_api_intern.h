@@ -221,6 +221,30 @@ extern IFX_int32_t MEI_InternalRequestConfig(
                               MEI_DYN_CNTRL_T    *pMeiDynCntrl,
                               IOCTL_MEI_reqCfg_t *pArgDevCfg_out);
 
+/**
+   Get device layout from the driver.
+
+   \param
+      pMaxDeviceNumber   Pointer to get g_MaxDeviceNumber value
+
+   \param
+      pLinesPerDevice   Pointer to get g_LinesPerDevice value
+
+   \param
+      pChannelPerLine   Pointer to get g_ChannelsPerLine value
+
+   \return
+      none
+
+   \remarks
+      This function should be only used within driver layer, internal access
+      context.
+*/
+extern IFX_void_t MEI_InternalGetDevLayout(
+                              IFX_uint32_t *pMaxDeviceNumber,
+                              IFX_uint32_t *pLinesPerDevice,
+                              IFX_uint32_t *pChannelPerLine);
+
 #if (MEI_SUPPORT_VDSL2_ADSL_SWAP == 1)
 /**
    Swap the VRX between VDSL2 and ADSL (driver layer internal)

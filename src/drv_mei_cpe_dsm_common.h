@@ -307,9 +307,9 @@ struct ACK_DSM_StatsGet
    /** Transmitted Error Vectors, MSW */
    IFX_uint16_t ErrVecTransmitted_MSW;
    /** Total Error Vectors, LSW */
-   IFX_uint16_t ErrVecTotal_LSW;
+   IFX_uint16_t ErrVecTotalReq_LSW;
    /** Total Error Vectors, MSW */
-   IFX_uint16_t ErrVecTotal_MSW;
+   IFX_uint16_t ErrVecTotalReq_MSW;
 #else
    /** Index */
    IFX_uint16_t Index;
@@ -324,9 +324,9 @@ struct ACK_DSM_StatsGet
    /** Transmitted Error Vectors, MSW */
    IFX_uint16_t ErrVecTransmitted_MSW;
    /** Total Error Vectors, LSW */
-   IFX_uint16_t ErrVecTotal_LSW;
+   IFX_uint16_t ErrVecTotalReq_LSW;
    /** Total Error Vectors, MSW */
-   IFX_uint16_t ErrVecTotal_MSW;
+   IFX_uint16_t ErrVecTotalReq_MSW;
 #endif
 } __PACKED__ ;
 

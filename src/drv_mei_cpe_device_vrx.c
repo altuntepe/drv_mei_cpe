@@ -229,6 +229,10 @@ IFX_int32_t MEI_VR1x_InternalInitDevice(MEI_DYN_CNTRL_T *pMeiDynCntrl)
       InitDev.PDBRAMaddr = MEI_DRV_PCIE_PHY_MEMBASE_GET(&pMeiDev->meiDrvCntrl)
                               + MEI_PDBRAM_OFFSET;
 
+#if (MEI_SUPPORT_DEVICE_VR11 == 1)
+      MEI_DbgSwitchClocksPLL(&pMeiDev->meiDrvCntrl, IFX_TRUE);
+#endif
+
       if ((retVal = MEI_InternalInitDevice(pMeiDynCntrl, &InitDev)) != IFX_SUCCESS)
       {
          return retVal;

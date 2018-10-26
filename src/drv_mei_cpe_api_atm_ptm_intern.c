@@ -220,6 +220,19 @@ IFX_int32_t MEI_TcRequest(void *data)
       argsTcRequest.request_type = request_type;
       argsTcRequest.is_bonding = MEI_PAF_EnableGet(pMeiDynCntrl);
 
+      if (MEI_DFEX_ENTITIES == 1 && argsTcRequest.is_bonding == IFX_TRUE)
+      {
+         PRN_DBG_USR_NL( MEI_NOTIFICATIONS, MEI_DRV_PRN_LEVEL_ERR,
+               ("MEI_DRV[%02d]: DSL FW indicated bonding operation but system "
+                "only supports single link. Indicating single link to the PP!"
+                MEI_DRV_CRLF, dslLineNum));
+
+         argsTcRequest.is_bonding = IFX_FALSE;
+      }
+
+      /** store status for Power Down feat. usage */
+      pMeiDev->bLastBondingStatus = argsTcRequest.is_bonding;
+
       MEI_InternalTcRequest(pMeiDynCntrl, &argsTcRequest);
 
 #if MEI_SUPPORT_DEVICE_VR11 == 1
@@ -322,6 +335,80 @@ IFX_int32_t MEI_InternalTcRequest(
          ("MEI_DRV[%02d]: TcRequest disabled by compile option, will not call it!"
           MEI_DRV_CRLF, dslLineNum));
 #endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+
+   return retVal;
+}
+
+IFX_int32_t MEI_InternalLineTCModeSwitch(IFX_int8_t nEntity, IFX_int8_t nInstance, IFX_boolean_t bPowerUp) {
+   IFX_int32_t retVal = IFX_SUCCESS;
+
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+   IFX_uint8_t nLineNum = 0;
+   MEI_DYN_CNTRL_T *pMeiDynCntrl;
+   MEI_TC_Request_t argsTcRequest;
+#endif /* defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS) */
+
+#if (MEI_SUPPORT_PERIODIC_TASK == 1)
+   if (bPowerUp == IFX_FALSE)
+   {
+      if ( MEI_DrvCntrlThreadParams.bValid == IFX_TRUE)
+      {
+         PRN_DBG_USR_NL( MEI_DRV,MEI_DRV_PRN_LEVEL_HIGH,
+               ("MEI_DRV: stop Periodic Task (PowerDown request)" MEI_DRV_CRLF));
+
+         MEI_DRVOS_ThreadDelete(&MEI_DrvCntrlThreadParams);
+      }
+   }
+#endif   /* #if (MEI_SUPPORT_PERIODIC_TASK == 1) */
+
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+   pMeiDynCntrl = NULL;
+   nLineNum = MEIX_Cntrl[nEntity]->MeiDevice[nInstance]->meiDrvCntrl.dslLineNum;
+   MEI_DynCntrlStructAlloc(nLineNum, &pMeiDynCntrl);
+ 
+   if (pMeiDynCntrl != NULL)
+   {
+      pMeiDynCntrl->openInstance = 0xFF;
+      pMeiDynCntrl->pDfeX        = NULL;
+      pMeiDynCntrl->pMeiDev      = MEIX_Cntrl[nEntity]->MeiDevice[nInstance];
+
+      argsTcRequest.request_type = bPowerUp ? MEI_TC_REQUEST_PTM : MEI_TC_REQUEST_OFF;
+      argsTcRequest.is_bonding   = pMeiDynCntrl->pMeiDev->bLastBondingStatus;
+
+      retVal = MEI_InternalTcRequest(pMeiDynCntrl, &argsTcRequest);
+
+      MEI_DRVOS_Wait_ms(200); 
+
+      MEI_DynCntrlStructFree(&pMeiDynCntrl);
+
+      if(bPowerUp == IFX_TRUE)
+      {
+         PRN_DBG_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_HIGH,
+            ("MEI_DRV[%02d]: Sending MEI_TC_REQUEST_PTM to line %d (is_bonding %d)" MEI_DRV_CRLF,
+            nLineNum, nLineNum, argsTcRequest.is_bonding));
+      }
+      else
+      {
+         PRN_DBG_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_HIGH,
+            ("MEI_DRV[%02d]: Sending MEI_TC_REQUEST_OFF to line %d (is_bonding %d)" MEI_DRV_CRLF,
+            nLineNum, nLineNum, argsTcRequest.is_bonding));
+      }
+   }
+   else
+   {
+      PRN_DBG_USR_NL( MEI_NOTIFICATIONS, MEI_DRV_PRN_LEVEL_ERR,
+         ("MEI_DRV[%02d]: TcModeSwitch failed, MeiDynCntrl is NULL!"
+         MEI_DRV_CRLF, nEntity));
+
+      retVal = -e_MEI_ERR_OP_FAILED;
+   }
+#else
+   PRN_DBG_USR_NL( MEI_NOTIFICATIONS, MEI_DRV_PRN_LEVEL_ERR,
+      ("MEI_DRV[%02d]: PPA Callbacks disabled by compile option, "
+       "to use this functionality you will need to enable them"
+      MEI_DRV_CRLF, nEntity));
+      
+#endif /* defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS) */
 
    return retVal;
 }

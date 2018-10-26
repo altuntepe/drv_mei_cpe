@@ -85,6 +85,8 @@
 
 #define MEI_DBG_FLAGS_ARC_HALT_MASK                 0x00000001
 #define MEI_DBG_FLAGS_ARC_HALT_RELEASED             0
+#define MEI_DBG_FLAGS_PMU_PLL_ON_MASK               0x00000002
+#define MEI_DBG_FLAGS_PMU_PLL_OFF_MASK              0x00000004
 
 /*
    Control definitions for the received msg buffer.
@@ -1017,7 +1019,6 @@ struct MEI_dev_s
    IFX_boolean_t bIsSetErb;
    IFX_uint32_t bar14;
    IFX_uint32_t bar17;
-   IFX_uint32_t barSafeAddr;
 #endif
 #endif /* (MEI_SUPPORT_DSM == 1) */
    IOCTL_MEI_firmwareFeatures_t firmwareFeatures;
@@ -1084,6 +1085,8 @@ struct MEI_dev_s
    IFX_boolean_t           bHandleCallback;
    enum MEI_CallbackType   callbackType;
    MEI_CALLBACK_T          callbackData;
+
+   IFX_boolean_t   bLastBondingStatus;
 };
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)) || (MEI_SUPPORT_DEVICE_VR10_320 == 1)
@@ -1097,8 +1100,8 @@ typedef struct MEI_devcfg_data_s
    IFX_uint32_t              MaxDeviceNumber;
    IFX_uint32_t              LinesPerDevice;
    IFX_uint32_t              ChannelsPerLine;
+   IFX_uint32_t              EntitiesEnabled;
    IFX_uint32_t              DfeChanDevices;
-
 } MEI_DEVCFG_DATA_T;
 #endif
 
@@ -1488,6 +1491,11 @@ extern IFX_int_t MEI_IoctlDbgStreamStatisticGet(
                               IOCTL_MEI_DEBUG_STREAM_statistic_t   *pDbgStreamStatistics);
 
 #endif /* (MEI_SUPPORT_DEBUG_STREAMS == 1) */
+
+#if (MEI_SUPPORT_DEVICE_VR11 == 1)
+extern IFX_int32_t MEI_DbgSwitchOffClocksPLL(IFX_uint8_t entity);
+#endif
+
 /* ==========================================================================
    Extern function definitions from the board driver for debug (trigger)
    ========================================================================== */

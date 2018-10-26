@@ -1559,6 +1559,7 @@ static void MEI_GetDevInfoProc(struct seq_file *s)
    seq_printf(s, "MaxDeviceNumber=%d\n",MEI_DFEX_ENTITIES);
    seq_printf(s, "LinesPerDevice=%d\n",MEI_DFE_INSTANCE_PER_ENTITY);
    seq_printf(s, "ChannelsPerLine=%d\n",MEI_DEVICE_CFG_VALUE_GET(ChannelsPerLine));
+   seq_printf(s, "EntitiesEnabled=%d\n",MEI_DEVICE_CFG_VALUE_GET(EntitiesEnabled));
 }
 
 /**
@@ -1801,7 +1802,7 @@ static void MEI_MeminfoProcPerDevGet(struct seq_file *s)
                switch(MEI_BAR_TYPE_GET(pMeiDev, barIdx))
                {
                   case eMEI_BAR_TYPE_UNUSED:
-                     seq_printf(s, " (unused)");
+                     seq_printf(s, " (Safe / unused)");
                      break;
 
                   case eMEI_BAR_TYPE_USER:
@@ -1828,15 +1829,21 @@ static void MEI_MeminfoProcPerDevGet(struct seq_file *s)
 
                   case eMEI_BAR_TYPE_CHUNK:
                   case eMEI_BAR_TYPE_SPECIAL:
-                        for(chunkIdx = 0; chunkIdx < pFwDlCtrl->meiMaxChunkCount; chunkIdx++)
+#if (MEI_SUPPORT_DEVICE_VR11 == 1)
+                     if(barIdx == MEI_FW_IMAGE_CHIPID_EFUSE_CHUNK_INDEX)
+                     {
+                        seq_printf(s, " (-> CHIPID_EFUSE + GPIO_FUNC)");
+                     }
+#endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
+                     for(chunkIdx = 0; chunkIdx < pFwDlCtrl->meiMaxChunkCount; chunkIdx++)
+                     {
+                        if (currBAR == (IFX_uint32_t)pChunk[chunkIdx].pBARx)
                         {
-                           if (currBAR == (IFX_uint32_t)pChunk[chunkIdx].pBARx)
-                           {
-                              seq_printf(s, " (-> chunk[%02d])", chunkIdx);
-                              break;
-                           }
+                           seq_printf(s, " (-> chunk[%02d])", chunkIdx);
+                           break;
                         }
-                        break;
+                     }
+                     break;
 
                   default:
                      seq_printf(s, " (-> unknown BAR type)");
@@ -1924,6 +1931,70 @@ static int MEI_BarUsrDbgProcPerDevSet(struct file *file,
 }
 #endif /* (MEI_PREDEF_DBG_BAR == 1) */
 
+static int MEI_EntitiesEnableCtrl(struct file *file,
+                  const char *buf, size_t count, loff_t *ppos)
+{
+   char proc_str[16] = { '\0' };
+   int nEntity = 0, nInstance = 0, ret = 0;
+   int nEntitiesEnableCtrl = 0, nEntitiesEnabled = MEI_DEVICE_CFG_VALUE_GET(EntitiesEnabled);
+   MEIX_CNTRL_T *pXCntrl;
+
+   if (count > sizeof(proc_str) - 1)
+   {
+      return -EINVAL;
+   }
+
+   if (copy_from_user(proc_str, buf, count))
+   {
+      return -EFAULT;
+   }
+
+   proc_str[count] = 0;
+   sscanf(proc_str, "%d", &nEntitiesEnableCtrl);
+
+   if(nEntitiesEnableCtrl > MEI_DFEX_ENTITIES || nEntitiesEnableCtrl < 0) 
+   {
+      PRN_DBG_USR_NL( MEI_DRV,MEI_DRV_PRN_LEVEL_HIGH,
+         ("MEI_DRV: Incorrect parameter" MEI_DRV_CRLF));
+
+      return e_MEI_ERR_INVAL_ARG;
+   }
+
+   if(nEntitiesEnableCtrl < nEntitiesEnabled) 
+   {
+      for(nEntity = nEntitiesEnabled - 1; nEntity >= nEntitiesEnableCtrl; --nEntity) 
+      {
+         if ((pXCntrl = MEIX_Cntrl[nEntity]) != NULL)
+         {
+            for (nInstance = 0; nInstance < MEI_DFE_INSTANCE_PER_ENTITY; ++nInstance)
+            {
+               ret = MEI_InternalLineTCModeSwitch(nEntity, nInstance, IFX_FALSE);
+            }
+         }
+      }
+   }
+   else if(nEntitiesEnableCtrl > nEntitiesEnabled)
+   {
+      for(nEntity = nEntitiesEnabled; nEntity < nEntitiesEnableCtrl; ++nEntity)
+      {
+         if ((pXCntrl = MEIX_Cntrl[nEntity]) != NULL)
+         {
+            for (nInstance = 0; nInstance < MEI_DFE_INSTANCE_PER_ENTITY; ++nInstance)
+            {
+               ret = MEI_InternalLineTCModeSwitch(nEntity, nInstance, IFX_TRUE);
+            }
+         }
+      }
+   }
+
+   if(ret == IFX_SUCCESS)
+   {
+      MEI_DEVICE_CFG_VALUE_SET(EntitiesEnabled, nEntitiesEnableCtrl);
+   }
+   
+   return count;
+}
+
 static int mei_seq_single_show(struct seq_file *s, void *v)
 {
    struct proc_entry *p = s->private;
@@ -1967,6 +2038,7 @@ static struct proc_entry proc_entry_meminfo[MEI_MAX_SUPPORTED_DFEX_ENTITIES];
 #if (MEI_PREDEF_DBG_BAR == 1)
 static struct proc_entry proc_entry_bar_usr_dbg[MEI_MAX_SUPPORTED_DFEX_ENTITIES];
 #endif
+static struct proc_entry proc_entry_entities_enable_ctrl = {"entities_enable_ctrl", NULL, MEI_EntitiesEnableCtrl};
 
 /**
    Initialize and install the proc entry
@@ -1987,7 +2059,6 @@ static int MEI_InstallProcEntry(unsigned char entity)
    static struct proc_dir_entry *driver_meminfo_proc_node = NULL;
    static struct proc_dir_entry *driver_bar_usr_dbg_proc_node = NULL;
 
-
    /* install the proc entry */
    PRN_DBG_USR_NL( MEI_DRV,MEI_DRV_PRN_LEVEL_LOW,
          ("MEI_DRV: using proc fs" MEI_DRV_CRLF));
@@ -1998,6 +2069,7 @@ static int MEI_InstallProcEntry(unsigned char entity)
       {
          mei_proc_entry_create(driver_proc_node, &proc_entry_version);
          mei_proc_entry_create(driver_proc_node, &proc_entry_devinfo);
+         mei_proc_entry_create(driver_proc_node, &proc_entry_entities_enable_ctrl);
 #if (MEI_SUPPORT_PROCFS_CONFIG == 1)
          MEI_InstallProcEntryConfig(driver_proc_node);
 #endif
@@ -2094,7 +2166,6 @@ static int MEI_InstallProcEntry(unsigned char entity)
       return -e_MEI_ERR_DEV_INIT;
    }
 #endif /* (MEI_PREDEF_DBG_BAR == 1) */
-
    return 0;
 }
 #endif
@@ -2349,6 +2420,16 @@ static void MEI_driver_exit (void)
       MEI_DRVOS_ThreadDelete(&MEI_DrvCntrlThreadParams);
    }
 #endif   /* #if (MEI_SUPPORT_PERIODIC_TASK == 1) */
+
+#if (MEI_SUPPORT_DEVICE_VR11 == 1)
+   if (MEI_DbgFlags & MEI_DBG_FLAGS_PMU_PLL_OFF_MASK)
+   {
+      for (entity = 0; entity < MEI_DFEX_ENTITIES; ++entity)
+      {
+         MEI_DbgSwitchOffClocksPLL(entity);
+      }
+   }
+#endif /* #if (MEI_SUPPORT_DEVICE_VR11 == 1) */
 
    PRN_DBG_USR_NL( MEI_DRV,MEI_DRV_PRN_LEVEL_HIGH,
          ("MEI_DRV: MEI IRQ list" MEI_DRV_CRLF));
@@ -4193,6 +4274,7 @@ static int MEI_module_init (void)
        ltq_dsl_cpe_mei_driver.driver.of_match_table = NULL;
    }
    MEI_DEVICE_CFG_VALUE_SET(MaxDeviceNumber, dev_registered);
+   MEI_DEVICE_CFG_VALUE_SET(EntitiesEnabled, dev_registered);
    MEI_DEVICE_CFG_VALUE_SET(LinesPerDevice, 1);
    MEI_DEVICE_CFG_VALUE_SET(ChannelsPerLine, 1);
    MEI_DEVICE_CFG_VALUE_SET(DfeChanDevices, dev_registered);
@@ -4220,6 +4302,7 @@ EXPORT_SYMBOL(MEI_InternalDebugLevelSet);
 EXPORT_SYMBOL(MEI_InternalInitDevice);
 EXPORT_SYMBOL(MEI_InternalDevReset);
 EXPORT_SYMBOL(MEI_InternalRequestConfig);
+EXPORT_SYMBOL(MEI_InternalGetDevLayout);
 
 #if (MEI_SUPPORT_VDSL2_ADSL_SWAP == 1)
 EXPORT_SYMBOL(MEI_InternalDevCfgFwModeSwap);

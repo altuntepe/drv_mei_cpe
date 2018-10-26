@@ -854,8 +854,10 @@ static int MEI_ProcWriteConfigDebugFlags(char *pArg)
 static void MEI_ProcReadConfigDebugFlags(struct seq_file *s)
 {
    seq_printf(s, "%2d: %s \t= %d" MEI_DRV_CRLF
-                 "\tBit0:  0: ARC HALT" MEI_DRV_CRLF
-                 "\tBit1..31: Reserved" MEI_DRV_CRLF,
+                 "\tBit0    : 0 = NOP, 1 = ARC HALT" MEI_DRV_CRLF
+                 "\tBit1    : 0 = NOP, 1 = PMU/PLL on" MEI_DRV_CRLF
+                 "\tBit2    : 0 = NOP, 1 = PMU/PLL off" MEI_DRV_CRLF
+                 "\tBit3..31: Reserved" MEI_DRV_CRLF,
                  e_PROCFS_CONFIG_DBG_FLAGS,
                  arrVrxDfeProcFsConfigTable[e_PROCFS_CONFIG_DBG_FLAGS].pName,
                  MEI_DbgFlags);

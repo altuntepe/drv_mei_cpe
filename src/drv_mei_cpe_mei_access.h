@@ -42,6 +42,7 @@ void MEI_CGU_PLLOMCFG_CLK5_Set(MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl, IOCTL_MEI_xdsl
 
 #if MEI_SUPPORT_DEVICE_VR11 == 1
 void MEI_CGU_PPLOMCFG_print(MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl);
+void MEI_DbgSwitchClocksPLL(MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl, IFX_boolean_t bSwitchOnClocksPLL);
 #endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 
 #define MEI_PARAM_COUNT_32_TO_16(paramCount32bit)   ((paramCount32bit)*sizeof(IFX_uint16_t))

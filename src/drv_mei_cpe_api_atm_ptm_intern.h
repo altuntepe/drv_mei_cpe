@@ -72,7 +72,13 @@ extern IFX_int32_t MEI_InternalTcReset(
                               MEI_TC_Reset_t         *pArgTcReset);
 
 extern IFX_int32_t MEI_InternalErbAddrUpdate(
-                                  MEI_DYN_CNTRL_T        *pMeiDynCntrl);
+                              MEI_DYN_CNTRL_T        *pMeiDynCntrl);
+
+extern IFX_int32_t MEI_InternalLineTCModeSwitch(
+                              IFX_int8_t nEntity, 
+                              IFX_int8_t nInstance, 
+                              IFX_boolean_t bPowerUp);
+
 
 #ifdef PPA_SUPPORTS_CALLBACKS
 extern int ppa_callback_set(e_ltq_mei_cb_type type, void *func);

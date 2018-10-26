@@ -147,9 +147,17 @@ IFX_uint8_t MEI_DefDownLoadChipId = MEI_DEF_DOWNLOAD_CHIPID;
 IFX_uint32_t MEI_MailboxBase_ME2ARC = MEI_BOOT_MAILBOX_ME2ARC_ADDR;
 IFX_uint32_t MEI_MailboxBase_ARC2ME = MEI_BOOT_MAILBOX_ARC2ME_ADDR;
 
-/* Bitmask, currently used bit 0:
-      0: ARC is released out of HALT after FW download (DEFAULT!)
-      1: ARC is NOT released out of HALT after FW download */
+/* Bitmask, currently used
+      bit 0:
+            0: ARC is released out of HALT after FW download (DEFAULT!)
+            1: ARC is NOT released out of HALT after FW download
+      bit 1:
+            0: NOP
+            1: Switch ON the clocks/PLL on VRX device initialization
+      bit 2:
+            0: NOP
+            1: Switch OFF the clocks/PLL on VRX driver uninstall
+      bit 3..31: Reserved */
 IFX_int32_t MEI_DbgFlags = 0;
 
 #if (MEI_SUPPORT_DEBUG_LOGGER == 1)
@@ -527,6 +535,45 @@ IFX_int32_t MEI_DevXCntrlStructFree(IFX_uint8_t entity)
    return IFX_ERROR;
 }
 
+#if (MEI_SUPPORT_DEVICE_VR11 == 1)
+IFX_int32_t MEI_DbgSwitchOffClocksPLL(IFX_uint8_t entity)
+{
+   MEIX_CNTRL_T *pXCntrl;
+   IFX_uint8_t instance, nLineNum;
+   MEI_DYN_CNTRL_T *pMeiDynCntrl;
+
+   if ((pXCntrl = MEIX_Cntrl[entity]) != NULL)
+   {
+      for (instance=0; instance<MEI_DFE_INSTANCE_PER_ENTITY; ++instance)
+      {
+         pMeiDynCntrl = NULL;
+         nLineNum = MEIX_Cntrl[entity]->MeiDevice[instance]->meiDrvCntrl.dslLineNum;
+         MEI_DynCntrlStructAlloc(nLineNum, &pMeiDynCntrl);
+
+         if (pMeiDynCntrl != NULL)
+         {
+            pMeiDynCntrl->openInstance = 0xFF;
+            pMeiDynCntrl->pDfeX        = NULL;
+            pMeiDynCntrl->pMeiDev      = MEIX_Cntrl[entity]->MeiDevice[instance];
+
+            MEI_DbgSwitchClocksPLL(&pMeiDynCntrl->pMeiDev->meiDrvCntrl, IFX_FALSE);
+
+            MEI_DynCntrlStructFree(&pMeiDynCntrl);
+         }
+         else
+         {
+            PRN_ERR_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_ERR,
+               ("MEI_DRV[%02d]: ERROR Switch OFF Clocks/PLL"
+                MEI_DRV_CRLF, nLineNum));
+
+            return IFX_ERROR;
+         }
+      }
+   }
+
+   return IFX_SUCCESS;
+}
+#endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 
 /**
    Allocate device control structure for a given device number.
@@ -2604,6 +2651,7 @@ IFX_int32_t MEI_IoctlDevinfoGet(
    pArgDevinfo_out->maxDeviceNumber = MEI_DFEX_ENTITIES;
    pArgDevinfo_out->linesPerDevice = MEI_DFE_INSTANCE_PER_ENTITY;
    pArgDevinfo_out->channelsPerLine = MEI_DEVICE_CFG_VALUE_GET(ChannelsPerLine);
+   pArgDevinfo_out->entitiesEnabled = MEI_DEVICE_CFG_VALUE_GET(EntitiesEnabled);
    return IFX_SUCCESS;
 }
 

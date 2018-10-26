@@ -2146,6 +2146,8 @@ typedef struct
    unsigned int linesPerDevice;
    /**  Number of (bearer-) channels per device */
    unsigned int channelsPerLine;
+   /**  Number of entities which are currently enabled */
+   unsigned int entitiesEnabled;
 } IOCTL_MEI_devinfo_t ;
 
 

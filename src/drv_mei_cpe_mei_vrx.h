@@ -50,7 +50,8 @@ extern "C"
 #  define MEI_CHIPID_EFUSE_OFFSET     0x18000
 #  define MEI_DSL_MEI_OFFSET          0x2C0000
 #  define MEI_CGU_OFFSET              0x0
-#  define MEI_PLL_OMCFG_OFFSET        0x64
+#  define MEI_CGU_PMU_PWDCR           0x11C
+#  define MEI_CGU_PLL_CFG             0x60
 #else
 #  define MEI_INTERNAL_ADDRESS_BASE   0x1E000000
 #  define MEI_OUTBOUND_ADDRESS_BASE   0x20000000

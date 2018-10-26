@@ -335,7 +335,7 @@ IFX_int32_t MEI_VRX_DSM_StatsGet(MEI_DYN_CNTRL_T *pMeiDynCntrl,
       if(MEI_DEVICE_CFG_IS_PLATFORM(e_MEI_DEV_PLATFORM_CONFIG_VR11))
       {
          pDsmStatistics->n_processed = (sAck.ErrVecTransmitted_MSW << 16) + sAck.ErrVecTransmitted_LSW;
-         pDsmStatistics->n_fw_total = (sAck.ErrVecTotal_MSW << 16) + sAck.ErrVecTotal_LSW;
+         pDsmStatistics->n_fw_total = (sAck.ErrVecTotalReq_MSW << 16) + sAck.ErrVecTotalReq_LSW;
       }
    }
 

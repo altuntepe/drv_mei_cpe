@@ -1,5 +1,30 @@
 NEXT VERSION
 
+V1.8.1.1 - 2018-08-02
+common:
+- VRX (DSLCPE_SW-1150) Shutdown sequence does not work correctly for UGW-8.x
+
+V1.8.1 - 2018-06-27
+common:
+- VRX (DSLCPE_SW-1145) Crash within context of bonding handling
+  + Restrict indication of bonding towards PP subsystem to single link if there
+    was only one VRX detected.
+- VRX518 (DSLCPE_SW-1121) Change implementation to adapt to the new concept for
+  PPE frequency scaling
+  + BAR19 register is freed up (unused after this change, partial revert from
+    DSLCPE_SW-1103)
+- VRX518 (DSLCPE_SW-1144) Shutdown sequence crashes in case of polling mode
+  + IRQ=99
+  + Includes DSLCPE_SW-1143 changes
+
+V1.8.0 - 2018-05-30
+common:
+- VRX518 (DSLCPE_SW-1122) Power Saving Support by the MEI-Driver (fallback)
+  + Support GRX350 platform (DSL clock gating flag: 0x20ec0305)
+- VRX (DSLCPE_SW-1119) Update MCAT header files to latest revision (Rev.3.1)
+- VRX (DSLCPE_SW-1120) Bugfixes for implementation changes of new BAR19 handling
+  for PPE frequency scaling
+
 V1.7.2 - 2018-01-15
 common:
 - VRX (DSLCPE_SW-1100) Integration/Bringup of MEI Driver (Kernel 4.9)

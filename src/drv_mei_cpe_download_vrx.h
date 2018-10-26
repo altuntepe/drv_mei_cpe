@@ -99,7 +99,6 @@ extern "C"
 #if (MEI_SUPPORT_DEVICE_VR11 == 1)
 #define MEI_FW_IMAGE_ERB_PPE_CHUNK_INDEX        (17)
 #define MEI_FW_IMAGE_CHIPID_EFUSE_CHUNK_INDEX   (18)
-#define MEI_FW_IMAGE_FREQ_SCAL_PPE_CHUNK_INDEX  (19)
 #endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 
 /* VR9 FW image header size [bytes] (including Page#0)*/
@@ -713,8 +712,6 @@ IFX_int32_t MEI_VR11_ErbBarSet(
                                  unsigned int data,
                                  unsigned int descriptor);
 
-IFX_int32_t MEI_VR11_BarSafeLocationAddressUpdate(
-                                 MEI_DEV_T *pMeiDev);
 #endif /* (MEI_SUPPORT_DEVICE_VR11 == 1) */
 
 

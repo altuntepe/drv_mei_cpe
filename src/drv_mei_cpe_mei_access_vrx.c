@@ -93,6 +93,11 @@ static inline volatile IFX_uint32_t MEI_RCU_Slave_get(MEI_MEI_DRV_CNTRL_T *pMeiD
 #define MEI_CGU_PLL_OMCFG_CLK5_MASK  (1 << 20 | 1 << 21)
 #define MEI_CGU_PLL_OMCFG_CLK5_SHIFT  20
 #define MEI_CGU_PLL_OMCFG_CLK5_SET(reg, value)  ((reg) & ~(MEI_CGU_PLL_OMCFG_CLK5_MASK)) | (((value) << (MEI_CGU_PLL_OMCFG_CLK5_SHIFT)) & (MEI_CGU_PLL_OMCFG_CLK5_MASK))
+#define MEI_CGU_PLL_ENABLE          0x00600011
+#define MEI_CGU_PMU_PWDCR_ENABLE    0x0
+#define MEI_CGU_PLL_DISABLE_STEP_1  0x40000001
+#define MEI_CGU_PLL_DISABLE_STEP_2  0x40000000
+#define MEI_CGU_PMU_PWDCR_DISABLE   0x20ec0305
 
 void MEI_CGU_PLLOMCFG_CLK5_Set(MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl, IOCTL_MEI_xdslMode_t xDslModeCurrent)
 {
@@ -138,9 +143,68 @@ void MEI_CGU_PPLOMCFG_print(MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl)
       break;
    }
 
-   PRN_DBG_USR_NL( MEI_MEI_ACCESS, MEI_DRV_PRN_LEVEL_HIGH,
+   PRN_DBG_USR_NL( MEI_MEI_ACCESS, MEI_DRV_PRN_LEVEL_NORMAL,
           ("MEI_DRV[%02d]: PLL_OMCFG = [0x%X], PPE frequency = %u MHz" MEI_DRV_CRLF,
             (IFX_uint32_t)pMeiDrvCntrl->dslLineNum, *MEI_CGU_PLL_OMCFG, freq));
+}
+
+void MEI_DbgSwitchClocksPLL(MEI_MEI_DRV_CNTRL_T *pMeiDrvCntrl, IFX_boolean_t bSwitchOnClocksPLL)
+{
+   IFX_uint32_t nBase;
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+   mei_tc_request_t mei_tc_request = NULL;
+#endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+
+   if(!pMeiDrvCntrl)
+   {
+      return;
+   }
+
+   nBase = MEI_DRV_PCIE_PHY_MEMBASE_GET(pMeiDrvCntrl) | MEI_CGU;
+
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+   mei_tc_request = (mei_tc_request_t)ppa_callback_get(LTQ_MEI_TC_REQUEST);
+#endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+
+   if(bSwitchOnClocksPLL && (MEI_DbgFlags & MEI_DBG_FLAGS_PMU_PLL_ON_MASK))
+   {
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+      if(mei_tc_request)
+      {
+         PRN_DBG_USR_NL( MEI_NOTIFICATIONS, MEI_DRV_PRN_LEVEL_HIGH,
+               ("MEI_DRV[%02d]: PP/TC Driver is expected to perform switch ON Clock/PLL" MEI_DRV_CRLF,
+               pMeiDrvCntrl->dslLineNum));
+      }
+      else
+      {
+#endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+      *((MEI_MeiReg_t*)(nBase + MEI_CGU_PLL_CFG)) = MEI_CGU_PLL_ENABLE;
+      *((MEI_MeiReg_t*)(nBase + MEI_CGU_PMU_PWDCR)) = MEI_CGU_PMU_PWDCR_ENABLE;
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+      }
+#endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+   }
+   else if(!bSwitchOnClocksPLL && (MEI_DbgFlags & MEI_DBG_FLAGS_PMU_PLL_OFF_MASK))
+   {
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+      if(mei_tc_request)
+      {
+         PRN_DBG_USR_NL( MEI_NOTIFICATIONS, MEI_DRV_PRN_LEVEL_HIGH,
+               ("MEI_DRV[%02d]: PP/TC Driver is expected to perform switch OFF Clock/PLL" MEI_DRV_CRLF,
+               pMeiDrvCntrl->dslLineNum));
+      }
+      else
+      {
+#endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+      *((MEI_MeiReg_t*)(nBase + MEI_CGU_PMU_PWDCR)) = MEI_CGU_PMU_PWDCR_DISABLE;
+      *((MEI_MeiReg_t*)(nBase + MEI_CGU_PLL_CFG)) = MEI_CGU_PLL_DISABLE_STEP_1;
+      *((MEI_MeiReg_t*)(nBase + MEI_CGU_PLL_CFG)) = MEI_CGU_PLL_DISABLE_STEP_2;
+#if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
+      }
+#endif /* PPA_SUPPORTS_CALLBACKS && PPA_SUPPORTS_TC_CALLBACKS */
+   }
+
+   return;
 }
 
 #endif
