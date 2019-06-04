@@ -1937,6 +1937,8 @@ static int MEI_EntitiesEnableCtrl(struct file *file,
    char proc_str[16] = { '\0' };
    int nEntity = 0, nInstance = 0, ret = 0;
    int nEntitiesEnableCtrl = 0, nEntitiesEnabled = MEI_DEVICE_CFG_VALUE_GET(EntitiesEnabled);
+   IFX_uint8_t nDisabledLinesCounter = 0;
+   IFX_boolean_t bKillMEIControlThread = IFX_FALSE;
    MEIX_CNTRL_T *pXCntrl;
 
    if (count > sizeof(proc_str) - 1)
@@ -1952,7 +1954,7 @@ static int MEI_EntitiesEnableCtrl(struct file *file,
    proc_str[count] = 0;
    sscanf(proc_str, "%d", &nEntitiesEnableCtrl);
 
-   if(nEntitiesEnableCtrl > MEI_DFEX_ENTITIES || nEntitiesEnableCtrl < 0) 
+   if(nEntitiesEnableCtrl > MEI_DFEX_ENTITIES || nEntitiesEnableCtrl < 0)
    {
       PRN_DBG_USR_NL( MEI_DRV,MEI_DRV_PRN_LEVEL_HIGH,
          ("MEI_DRV: Incorrect parameter" MEI_DRV_CRLF));
@@ -1960,15 +1962,23 @@ static int MEI_EntitiesEnableCtrl(struct file *file,
       return e_MEI_ERR_INVAL_ARG;
    }
 
-   if(nEntitiesEnableCtrl < nEntitiesEnabled) 
+   if(nEntitiesEnableCtrl < nEntitiesEnabled)
    {
-      for(nEntity = nEntitiesEnabled - 1; nEntity >= nEntitiesEnableCtrl; --nEntity) 
+      nDisabledLinesCounter = 0;
+      for(nEntity = nEntitiesEnabled - 1; nEntity >= nEntitiesEnableCtrl; --nEntity)
       {
+         ++nDisabledLinesCounter;
+
+         if (nEntitiesEnabled == nDisabledLinesCounter)
+         {
+            bKillMEIControlThread = IFX_TRUE;
+         }
+
          if ((pXCntrl = MEIX_Cntrl[nEntity]) != NULL)
          {
             for (nInstance = 0; nInstance < MEI_DFE_INSTANCE_PER_ENTITY; ++nInstance)
             {
-               ret = MEI_InternalLineTCModeSwitch(nEntity, nInstance, IFX_FALSE);
+               ret = MEI_InternalLineTCModeSwitch(nEntity, nInstance, IFX_FALSE, bKillMEIControlThread);
             }
          }
       }
@@ -1981,7 +1991,7 @@ static int MEI_EntitiesEnableCtrl(struct file *file,
          {
             for (nInstance = 0; nInstance < MEI_DFE_INSTANCE_PER_ENTITY; ++nInstance)
             {
-               ret = MEI_InternalLineTCModeSwitch(nEntity, nInstance, IFX_TRUE);
+               ret = MEI_InternalLineTCModeSwitch(nEntity, nInstance, IFX_TRUE, bKillMEIControlThread);
             }
          }
       }
@@ -1991,7 +2001,7 @@ static int MEI_EntitiesEnableCtrl(struct file *file,
    {
       MEI_DEVICE_CFG_VALUE_SET(EntitiesEnabled, nEntitiesEnableCtrl);
    }
-   
+
    return count;
 }
 
@@ -3088,6 +3098,7 @@ IFX_int32_t MEI_IoctlInitDevice(
             pMeiDev->intMask   = ME_ARC2ME_INTERRUPT_UNMASK_ALL;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)) \
+      || (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)) \
       || (MEI_SUPPORT_DEVICE_VR10_320 == 1) \
       || (MEI_TARGET_x86 == 1)
             virq = (IFX_uint32_t)pInitDev->usedIRQ;

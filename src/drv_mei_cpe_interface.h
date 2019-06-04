@@ -73,6 +73,18 @@
    \ingroup MEI_CEOC
 */
 
+/** \defgroup MEI_API Functions for common usage within Linux user space
+    This Group contains all the common functions for general purpose that might
+    be used from within Linux user space, independent from DSL CPE API Driver
+    usage.
+    \ingroup MEI_INTERFACE
+*/
+
+/**
+   \defgroup MEI_API_IOCTL IOCtl's
+   \ingroup MEI_API
+*/
+
 /** \defgroup MEI_DSM Functions for Digital Spectrum Management (DSM/vectoring)
     This Group contains all the commonly used functions for configuration,
     control and status request of the [D]igital [S]pectrum [M]anagement related
@@ -248,6 +260,7 @@
    \ingroup MEI_COMMON_IOCTL              */
 #define FIO_MEI_DRV_INIT               _IO(MEI_IOC_MAGIC, 4)
 
+#endif /* #ifndef DSL_DOC_GENERATION_EXCLUDE_UNWANTED */
 
 /** This returns information about the successfully detected respective
     available devices/lines.
@@ -269,9 +282,10 @@
      memset(&devInfo, 0x00, sizeof(IOCTL_MEI_drvDevinfoGet_t));
      ret = ioctl(fd, FIO_MEI_DRV_DEVINFO_GET, &devInfo)
    \endcode
-   \ingroup MEI_COMMON_IOCTL              */
+   \ingroup MEI_API_IOCTL              */
 #define FIO_MEI_DRV_DEVINFO_GET            _IO(MEI_IOC_MAGIC, 5)
 
+#ifndef DSL_DOC_GENERATION_EXCLUDE_UNWANTED
 
 /** This service resets the MEI CPE Device Driver and optional the
     device blocks via MEI register.
@@ -2133,6 +2147,7 @@ typedef struct
    unsigned int bmWaitStates;
 } IOCTL_MEI_drvInit_t;
 
+#endif /* #ifndef DSL_DOC_GENERATION_EXCLUDE_UNWANTED */
 
 /** ioctl structure to get the device/line availibility. */
 typedef struct
@@ -2150,6 +2165,7 @@ typedef struct
    unsigned int entitiesEnabled;
 } IOCTL_MEI_devinfo_t ;
 
+#ifndef DSL_DOC_GENERATION_EXCLUDE_UNWANTED
 
 /** modem Driver Reset Modes */
 typedef enum

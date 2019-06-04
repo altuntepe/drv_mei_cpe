@@ -772,10 +772,9 @@ static MEIOS_File_t* MEI_debug_stream_dump_new_file(MEIOS_File_t *dumpFd)
    return dumpFd;
 }
 
-static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
+static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   **pDumpFd,
                                               unsigned short *pBuffer,
-                                              unsigned long  *pCurLength,
-                                              MEIOS_File_t   **pDumpFd)
+                                              unsigned long  *pCurLength)
 {
    unsigned short i = 0;
    static unsigned long nWrittenBytesToFlush = 0;
@@ -787,6 +786,14 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
    data.maxStreamEntries = 20;
    data.pData = (unsigned char*)pBuffer;
    data.timeout_ms = 0;
+   
+   if (pDumpFd == NULL)
+   {
+      MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
+         "ERROR - pDumpFd is NULL" MEIOS_CRLF);
+      return -1;
+   }
+
    if ((MEIOS_DeviceControl(fd,
                             FIO_MEI_DEBUG_STREAM_DATA_GET,
                             (MEI_IOCTL_ARG)&data)) < 0 )
@@ -799,51 +806,60 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
 
    if ((bText != 1) && (bFile == 1))
    {
-      if (data.dataBufferSize_byte >= g_nFileLength)
+      if(*pDumpFd != NULL)
       {
-         for (; data.dataBufferSize_byte >= g_nFileLength;
-                data.dataBufferSize_byte -= g_nFileLength)
+         if (data.dataBufferSize_byte >= g_nFileLength)
          {
-            *pCurLength = (data.dataBufferSize_byte < g_nFileLength)?
+            for (; data.dataBufferSize_byte >= g_nFileLength;
+               data.dataBufferSize_byte -= g_nFileLength)
+            {
+               *pCurLength = (data.dataBufferSize_byte < g_nFileLength)?
                data.dataBufferSize_byte :
                g_nFileLength;
-            fwrite(data.pData, sizeof(char), *pCurLength, dumpFd);
-            data.pData += *pCurLength;
-            dumpFd = MEI_debug_stream_dump_new_file(dumpFd);
-            if (dumpFd == NULL)
+               fwrite(data.pData, sizeof(char), *pCurLength, *pDumpFd);
+               data.pData += *pCurLength;
+               *pDumpFd = MEI_debug_stream_dump_new_file(*pDumpFd);
+               if (*pDumpFd == NULL)
+               {
+                  MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
+                     "ERROR - could not open new dump file" MEIOS_CRLF);
+                  return -1;
+               }
+            }
+            *pCurLength = 0;
+         }
+         else
+         {
+            *pCurLength += data.dataBufferSize_byte;
+            if (*pCurLength >= g_nFileLength)
             {
-               MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
-                  "ERROR - could not open new dump file" MEIOS_CRLF);
-               return -1;
+               *pDumpFd = MEI_debug_stream_dump_new_file(*pDumpFd);
+               if (*pDumpFd == NULL)
+               {
+                  MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
+                     "ERROR - could not open new dump file" MEIOS_CRLF);
+                  return -1;
+               }
+               *pCurLength = data.dataBufferSize_byte;
+            }
+
+            if (*pDumpFd != NULL)
+            {
+               fwrite(data.pData, sizeof(char), data.dataBufferSize_byte, *pDumpFd);
+               nWrittenBytesToFlush += data.dataBufferSize_byte;
+               if (nWrittenBytesToFlush >= DBG_STRM_DMP_MEI_BYTES_TO_FLUSH)
+               {
+                  fflush(*pDumpFd);
+                  nWrittenBytesToFlush = 0;
+               }
             }
          }
-         *pCurLength = 0;
       }
       else
       {
-         *pCurLength += data.dataBufferSize_byte;
-         if (*pCurLength >= g_nFileLength)
-         {
-            dumpFd = MEI_debug_stream_dump_new_file(dumpFd);
-            if (dumpFd == NULL)
-            {
-               MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
-                  "ERROR - could not open new dump file" MEIOS_CRLF);
-               return -1;
-            }
-            *pCurLength = data.dataBufferSize_byte;
-         }
-
-         if (dumpFd != NULL)
-         {
-            fwrite(data.pData, sizeof(char), data.dataBufferSize_byte, dumpFd);
-            nWrittenBytesToFlush += data.dataBufferSize_byte;
-            if (nWrittenBytesToFlush >= DBG_STRM_DMP_MEI_BYTES_TO_FLUSH)
-            {
-                fflush(dumpFd);
-                nWrittenBytesToFlush = 0;
-            }
-         }
+         MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
+            "ERROR - *pDumpFd is empty" MEIOS_CRLF);
+         return -1;
       }
    }
    else
@@ -855,16 +871,16 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
          /* Reset cycle byte counter */
          nWrittenBytes = 0;
 
-         if((dumpFd == stdout) && (dumpFd != NULL) &&
+         if((*pDumpFd == stdout) && (*pDumpFd != NULL) &&
            ((((unsigned short*)data.pData)[i]) == DBG_STRM_DMP_MEI_EVENT_NUM))
          {
-            nWrittenBytes += MEIOS_FPrintf(dumpFd, "\n");
+            nWrittenBytes += MEIOS_FPrintf(*pDumpFd, "\n");
          }
          if((((unsigned short*)data.pData)[i]) != DBG_STRM_DMP_MEI_EVENT_NUM)
          {
-            if (dumpFd != NULL)
+            if (*pDumpFd != NULL)
             {
-               nWrittenBytes += MEIOS_FPrintf(dumpFd, "%04X ",
+               nWrittenBytes += MEIOS_FPrintf(*pDumpFd, "%04X ",
                   ((unsigned short*)data.pData)[i]);
             }
          }
@@ -876,10 +892,10 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
          *pCurLength += nWrittenBytes;
          nWrittenBytesToFlush += nWrittenBytes;
 
-         if ((dumpFd != NULL) &&
+         if ((*pDumpFd != NULL) &&
              (nWrittenBytesToFlush >= DBG_STRM_DMP_MEI_BYTES_TO_FLUSH))
          {
-            fflush(dumpFd);
+            fflush(*pDumpFd);
             nWrittenBytesToFlush = 0;
          }
 
@@ -887,8 +903,8 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
          {
             if(*pCurLength >= g_nFileLength)
             {
-               dumpFd = MEI_debug_stream_dump_new_file(dumpFd);
-               if (dumpFd == NULL)
+               *pDumpFd = MEI_debug_stream_dump_new_file(*pDumpFd);
+               if (*pDumpFd == NULL)
                {
                   MEIOS_FPrintf(stdout, DBG_STRM_DMP_MEI_DBG_PREFIX
                      "ERROR - could not open new dump file" MEIOS_CRLF);
@@ -898,9 +914,9 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
                nWrittenBytes = 0;
                nWrittenBytesToFlush = 0;
             }
-            if (dumpFd != NULL)
+            if (*pDumpFd != NULL)
             {
-               MEIOS_FPrintf(dumpFd, "%04X ", DBG_STRM_DMP_MEI_EVENT_NUM);
+               MEIOS_FPrintf(*pDumpFd, "%04X ", DBG_STRM_DMP_MEI_EVENT_NUM);
             }
          }
       }
@@ -909,13 +925,9 @@ static int MEI_debug_stream_dump_save_to_file(MEIOS_File_t   *dumpFd,
    if (data.dataBufferSize_byte == 0)
    {
       /* The data from the buffer was written fully */
-      if (dumpFd != NULL)
+      if (*pDumpFd != NULL)
       {
-         if (pDumpFd != NULL)
-         {
-            *pDumpFd = dumpFd;
-         }
-         fflush(dumpFd);
+         fflush(*pDumpFd);
          nWrittenBytesToFlush = 0;
       }
 
@@ -1173,10 +1185,9 @@ int MEI_debug_stream_dump_daemon(void)
 
       do
       {
-         ret = MEI_debug_stream_dump_save_to_file(dumpFd,
+         ret = MEI_debug_stream_dump_save_to_file(&dumpFd,
                                                   pBuffer,
-                                                  &nCurrentLength,
-                                                  &dumpFd);
+                                                  &nCurrentLength);
       } while (ret == 0);
 
       if (ret == -1)

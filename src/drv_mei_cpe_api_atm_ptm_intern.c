@@ -265,7 +265,7 @@ IFX_int32_t MEI_TcRequest(void *data)
       MEI_DynCntrlStructFree(&pMeiDynCntrl);
    }
 
-#ifdef IRQ_POLLING_FORCE 
+#ifdef IRQ_POLLING_FORCE
    do_exit(retVal);
 #endif /* IRQ_POLLING_FORCE */
 
@@ -339,7 +339,12 @@ IFX_int32_t MEI_InternalTcRequest(
    return retVal;
 }
 
-IFX_int32_t MEI_InternalLineTCModeSwitch(IFX_int8_t nEntity, IFX_int8_t nInstance, IFX_boolean_t bPowerUp) {
+IFX_int32_t MEI_InternalLineTCModeSwitch(
+                              IFX_int8_t nEntity,
+                              IFX_int8_t nInstance,
+                              IFX_boolean_t bPowerUp,
+                              IFX_boolean_t bKillMEIControlThread)
+{
    IFX_int32_t retVal = IFX_SUCCESS;
 
 #if defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS)
@@ -349,7 +354,7 @@ IFX_int32_t MEI_InternalLineTCModeSwitch(IFX_int8_t nEntity, IFX_int8_t nInstanc
 #endif /* defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS) */
 
 #if (MEI_SUPPORT_PERIODIC_TASK == 1)
-   if (bPowerUp == IFX_FALSE)
+   if (bKillMEIControlThread == IFX_TRUE)
    {
       if ( MEI_DrvCntrlThreadParams.bValid == IFX_TRUE)
       {
@@ -365,7 +370,7 @@ IFX_int32_t MEI_InternalLineTCModeSwitch(IFX_int8_t nEntity, IFX_int8_t nInstanc
    pMeiDynCntrl = NULL;
    nLineNum = MEIX_Cntrl[nEntity]->MeiDevice[nInstance]->meiDrvCntrl.dslLineNum;
    MEI_DynCntrlStructAlloc(nLineNum, &pMeiDynCntrl);
- 
+
    if (pMeiDynCntrl != NULL)
    {
       pMeiDynCntrl->openInstance = 0xFF;
@@ -377,7 +382,7 @@ IFX_int32_t MEI_InternalLineTCModeSwitch(IFX_int8_t nEntity, IFX_int8_t nInstanc
 
       retVal = MEI_InternalTcRequest(pMeiDynCntrl, &argsTcRequest);
 
-      MEI_DRVOS_Wait_ms(200); 
+      MEI_DRVOS_Wait_ms(200);
 
       MEI_DynCntrlStructFree(&pMeiDynCntrl);
 
@@ -407,7 +412,7 @@ IFX_int32_t MEI_InternalLineTCModeSwitch(IFX_int8_t nEntity, IFX_int8_t nInstanc
       ("MEI_DRV[%02d]: PPA Callbacks disabled by compile option, "
        "to use this functionality you will need to enable them"
       MEI_DRV_CRLF, nEntity));
-      
+
 #endif /* defined(PPA_SUPPORTS_CALLBACKS) && defined(PPA_SUPPORTS_TC_CALLBACKS) */
 
    return retVal;

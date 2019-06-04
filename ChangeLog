@@ -1,5 +1,14 @@
 NEXT VERSION
 
+V1.8.1.1.0 - 2019-01-15
+- VRX (DSLCPE_SW-1163) IRQ mode is possible to used within UGW-8.x again
+- VRX (DSLCPE_SW-1097) Message dump printout within MEI Driver is not as expected
+- (DSLCPE_SW-1139) Generation of UMPR for API 4.19.x / R5 release
+   Make sure that IOCtl's which shall be part of the API UMPR are classified
+   accordingly
+- VRX (DSLCPE_SW-1149) Debug stream segmentation fault fix
+- VRX (DSLCPE_SW-1173) [VRX518][Power Saving] Switching BND->Single
+
 V1.8.1.1 - 2018-08-02
 common:
 - VRX (DSLCPE_SW-1150) Shutdown sequence does not work correctly for UGW-8.x
@@ -19,6 +28,9 @@ common:
 
 V1.8.0 - 2018-05-30
 common:
+- VRX518 (DSLCPE_SW-1131) Power Saving for Disabled DSL Lines in VRX518
+  + Entities disabling implementation
+  + Separate function for sending TC Request / setting callback
 - VRX518 (DSLCPE_SW-1122) Power Saving Support by the MEI-Driver (fallback)
   + Support GRX350 platform (DSL clock gating flag: 0x20ec0305)
 - VRX (DSLCPE_SW-1119) Update MCAT header files to latest revision (Rev.3.1)

@@ -1,7 +1,6 @@
 /******************************************************************************
-
-                          Copyright (c) 2007-2015
-                     Lantiq Beteiligungs-GmbH & Co. KG
+          Copyright 2018 Intel Corporation
+          Copyright 2007 - 2015 Lantiq Beteiligungs-GmbH & Co. KG
 
   For licensing information, see the file 'LICENSE' in the root folder of
   this software module.
@@ -434,6 +433,13 @@ static IFX_void_t MEI_Internal_DumpMessage(
    static const IFX_uint32_t *pMsg32;
    IFX_boolean_t bDirSet = IFX_FALSE;
    IFX_uint8_t i;
+   const IFX_uint32_t nCommonPayloadSize = 5*nSize/2;
+   const IFX_uint8_t nInfoSize = 35;
+   const IFX_uint8_t nBufSize = 10;
+   IFX_uint32_t nMsgSize = nCommonPayloadSize + nInfoSize;
+   IFX_uint32_t nCharsWrittenToBuf = 0;
+   char msg[nMsgSize];
+   char buf[nBufSize];
 
    if((pData == IFX_NULL) || (nSize < 4))
    {
@@ -445,11 +451,12 @@ static IFX_void_t MEI_Internal_DumpMessage(
 
    bDirSet = (nMsgId & 0x40) ? IFX_TRUE : IFX_FALSE;
 
-   PRN_DBG_USR_RAW(MEI_MSG_DUMP_API, dbg_level,
-                  ("MEI[%02d/%s]: 0x%04x 0x%04x 0x%04x",
-                  MEI_DRV_DYN_LINENUM_GET(pMeiDynCntrl),
-                  (bReceive == IFX_TRUE ? "rx" : "tx"), nMsgId,
-                  pData[0], pData[1]));
+   snprintf(msg, nInfoSize,
+              "MEI[%02d/%s]: 0x%04x 0x%04x 0x%04x",
+              MEI_DRV_DYN_LINENUM_GET(pMeiDynCntrl),
+              (bReceive == IFX_TRUE ? "rx" : "tx"), nMsgId,
+              pData[0], pData[1]);
+   nMsgSize -= nInfoSize;
 
    /* decide wether to interpret the rest as 16 or 32 bit */
    if (nMsgId & 0x0010)
@@ -457,7 +464,9 @@ static IFX_void_t MEI_Internal_DumpMessage(
       /* 32-bit payload elements */
       for (i=0; i<((nSize-4)/4); i++)
       {
-         PRN_DBG_USR_RAW(MEI_MSG_DUMP_API, dbg_level, (" %08X", pMsg32[i]));
+         nCharsWrittenToBuf = snprintf(buf, nBufSize, " %08X", pMsg32[i]);
+         strncat(msg, buf, nMsgSize);
+         nMsgSize -= nCharsWrittenToBuf;
       }
    }
    else
@@ -465,11 +474,14 @@ static IFX_void_t MEI_Internal_DumpMessage(
       /* 16-bit payload elements */
       for (i=0; i<((nSize-4)/2); i++)
       {
-         PRN_DBG_USR_RAW(MEI_MSG_DUMP_API, dbg_level, (" %04X", pMsg16[i]));
+         nCharsWrittenToBuf = snprintf(buf, nBufSize, " %04X", pMsg16[i]);
+         strncat(msg, buf, nMsgSize);
+         nMsgSize -= nCharsWrittenToBuf;
       }
    }
+   strncat(msg, MEI_DRV_CRLF, nMsgSize);
 
-   PRN_DBG_USR_RAW(MEI_MSG_DUMP_API, dbg_level, (MEI_DRV_CRLF));
+   PRN_DBG_USR_RAW(MEI_MSG_DUMP_API, dbg_level, (msg));
 }
 
 IFX_int32_t MEI_InternalSendMessage(
@@ -501,7 +513,7 @@ IFX_int32_t MEI_InternalSendMessage(
    {
       MEI_Internal_DumpMessage(pMeiDynCntrl, msg.ack_msg.msgId,
          (IFX_uint16_t *)msg.ack_msg.pPayload, msg.ack_msg.paylSize_byte,
-         IFX_TRUE, MEI_DRV_PRN_LEVEL_LOW);
+         IFX_TRUE, MEI_DRV_PRN_LEVEL_NORMAL);
    }
 
    return ret;
