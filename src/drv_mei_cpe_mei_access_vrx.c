@@ -1691,7 +1691,8 @@ IFX_int32_t MEI_InterfaceDetect(
    {
       MEI_REG_ACCESS_ME_VERSION_SET(pMeiDrvCntrl, 0x00000000);
       hwVers = MEI_REG_ACCESS_ME_VERSION_GET(pMeiDrvCntrl);
-      printk ("hwVers=0x%08X\n", hwVers);
+      PRN_DBG_USR_NL( MEI_DRV, MEI_DRV_PRN_LEVEL_HIGH,
+         ("hwVers=0x%08X\n", hwVers));
 
       if (MEI_DEVICE_CFG_IS_PLATFORM(e_MEI_DEV_PLATFORM_CONFIG_VR9))
       {
